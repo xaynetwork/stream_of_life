@@ -1,9 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:stream_of_life/src/cell.dart';
 import 'package:stream_of_life/src/conway_rule_set.dart';
 import 'package:stream_of_life/src/puffer_train_data.dart' as puffer_train;
 
-const double _kCellSize = 4;
+const double _kCellSize = 3;
 
 class Renderer extends StatefulWidget {
   const Renderer({Key? key}) : super(key: key);
@@ -34,7 +36,11 @@ class _RendererState extends State<Renderer> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  CustomPaint(painter: _Painter(snapshot.requireData)),
+                  CustomPaint(
+                    painter: _Painter(snapshot.requireData),
+                    isComplex: false,
+                    willChange: true,
+                  ),
                   Positioned(
                       bottom: 24,
                       right: 24,
@@ -55,22 +61,34 @@ class _Painter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final cell in grid) {
-      final dx = size.width / 2 + cell.x * _kCellSize,
-          dy = size.height + cell.y * _kCellSize;
+    const o = _kCellSize / 2;
+    final paint = Paint()
+      ..color = Colors.green
+      ..isAntiAlias = false;
+    final offsets = grid
+        .map((cell) {
+          final dx = size.width / 2 + cell.x * _kCellSize,
+              dy = size.height + cell.y * _kCellSize;
 
-      if (size.contains(Offset(dx, dy))) {
-        canvas.drawRect(
-            Rect.fromCenter(
-              center: Offset(dx, dy),
-              width: _kCellSize,
-              height: _kCellSize,
-            ),
-            Paint()..color = Colors.green);
-      }
-    }
+          return [
+            Offset(dx - o, dy - o),
+            Offset(dx + o, dy - o),
+            Offset(dx - o, dy + o),
+            Offset(dx + o, dy + o),
+            Offset(dx + o, dy - o),
+            Offset(dx - o, dy + o),
+          ];
+        })
+        .expand((it) => it)
+        .toList(growable: false);
+
+    canvas.drawVertices(
+      Vertices(VertexMode.triangles, offsets),
+      BlendMode.srcIn,
+      paint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(_Painter oldDelegate) => true;
 }
