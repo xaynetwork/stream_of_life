@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:stream_of_life/src/cell.dart';
@@ -99,6 +100,19 @@ class LifetimeState {
 
   const LifetimeState.growing(this.state) : isGenerationMilestone = false;
   const LifetimeState.mature(this.state) : isGenerationMilestone = true;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is LifetimeState) {
+      return other.isGenerationMilestone == isGenerationMilestone &&
+          const SetEquality().equals(other.state, state);
+    }
+
+    return false;
+  }
+
+  @override
+  int get hashCode => '$isGenerationMilestone, $state'.hashCode;
 
   @override
   String toString() =>

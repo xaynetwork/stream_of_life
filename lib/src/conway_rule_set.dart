@@ -24,15 +24,22 @@ class ConwayRuleSet {
         .asyncMap((it) => readySignal?.call(it) ?? Future.value(it))
         .take(years)
         .map((it) => it.state)
-        .asyncExpand((cells) => Stream.fromIterable(cells)
-            // test if currently living cells can stay alive
-            .map(cropLocalArea(cells))
-            .asyncExpand(maybeStayAlive(cells))
-            // test if the cell can produce offspring
-            .map(cropLocalArea(cells))
-            .map(maybeCreateOffspring(cells))
-            // mark the current generation as completed
-            .doOnDone(_plane.markGeneration))
+        .asyncExpand((cells) {
+          final toLocalArea = createLocalAreaBuilder(cells);
+          final maybeStayAliveAndListDeadSiblings =
+              createMaybeStayAliveBuilder(cells);
+          final maybeCreateOffspring = createMaybeCreateOffspringBuilder(cells);
+
+          return Stream.fromIterable(cells)
+              // test if currently living cells can stay alive
+              .map(toLocalArea)
+              .asyncExpand(maybeStayAliveAndListDeadSiblings)
+              // test if the cell can produce offspring
+              .map(toLocalArea)
+              .map(maybeCreateOffspring)
+              // mark the current generation as completed
+              .doOnDone(_plane.markGeneration);
+        })
         .listen(null)
         .addTo(_subscriptions);
   }
@@ -42,21 +49,25 @@ class ConwayRuleSet {
       .map((it) => it.state);
 
   @visibleForTesting
-  Iterable<Slot> Function(Cell) cropLocalArea(HashSet<Cell> state) =>
-      (centerCell) sync* {
+  Iterable<Slot> Function(Cell) createLocalAreaBuilder(HashSet<Cell> state) =>
+      (centerCell) {
+        final list = <Slot>[];
+
         for (var col = -1; col <= 1; col++) {
           for (var row = -1; row <= 1; row++) {
             final x = centerCell.x + col, y = centerCell.y + row;
             final cell = Cell(x: x, y: y);
             final hasCell = state.contains(cell);
 
-            yield Slot(
+            list.add(Slot(
               hasCell ? cell : null,
               x: x,
               y: y,
-            );
+            ));
           }
         }
+
+        return List<Slot>.unmodifiable(list);
       };
 
   @mustCallSuper
@@ -66,32 +77,34 @@ class ConwayRuleSet {
   }
 
   @visibleForTesting
-  Stream<Cell> Function(Iterable<Slot>) maybeStayAlive(HashSet<Cell> state) =>
-      (Iterable<Slot> grid) async* {
-        final mainSlot = grid.elementAt(4);
-        var aliveSiblings = -1;
-
-        for (final slot in grid) {
-          if (slot.hasCell) {
-            aliveSiblings++;
-          } else {
-            yield slot.requireCell;
-          }
-        }
+  Stream<Cell> Function(Iterable<Slot>) createMaybeStayAliveBuilder(
+    HashSet<Cell> state,
+  ) =>
+      (grid) {
+        // subtract 1, which is the center cell itself
+        final aliveSiblings = grid.aliveSiblingsCount - 1;
 
         if (aliveSiblings < 2 || aliveSiblings > 3) {
-          _plane.remove(mainSlot.requireCell);
+          _plane.remove(grid.center.requireCell);
         }
+
+        return Stream.fromIterable(grid.deadSiblings);
       };
 
   @visibleForTesting
-  void Function(Iterable<Slot>) maybeCreateOffspring(Set<Cell> state) =>
-      (Iterable<Slot> grid) {
-        final mainSlot = grid.elementAt(4);
-        final aliveSiblings = grid.where((it) => it.hasCell).length;
-
-        if (aliveSiblings == 3) {
-          _plane.add(mainSlot.requireCell);
-        }
+  void Function(Iterable<Slot>) createMaybeCreateOffspringBuilder(
+    Set<Cell> state,
+  ) =>
+      (grid) {
+        if (grid.aliveSiblingsCount == 3) _plane.add(grid.center.requireCell);
       };
+}
+
+extension _LocalAreaExtension on Iterable<Slot> {
+  Slot get center => elementAt(4);
+
+  int get aliveSiblingsCount => where((it) => it.hasCell).length;
+
+  Iterable<Cell> get deadSiblings =>
+      where((it) => !it.hasCell).map((it) => it.requireCell);
 }

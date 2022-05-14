@@ -31,7 +31,19 @@ class _RendererState extends State<Renderer> {
   Widget build(BuildContext context) => StreamBuilder<Set<Cell>>(
         stream: stream,
         builder: (context, snapshot) => snapshot.hasData
-            ? CustomPaint(painter: _Painter(snapshot.requireData))
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  CustomPaint(painter: _Painter(snapshot.requireData)),
+                  Positioned(
+                      bottom: 24,
+                      right: 24,
+                      child: DefaultTextStyle(
+                          style: const TextStyle(
+                              fontSize: 28, color: Colors.white),
+                          child: Text('${snapshot.requireData.length}'))),
+                ],
+              )
             : Container(),
       );
 }
