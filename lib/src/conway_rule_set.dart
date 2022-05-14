@@ -1,16 +1,15 @@
-import 'dart:collection';
-
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:stream_of_life/src/cell.dart';
 import 'package:stream_of_life/src/plane.dart';
 import 'package:stream_of_life/src/slot.dart';
 
-typedef ReadySignal = Future<LifetimeState> Function(LifetimeState);
+typedef ReadySignal = Future<void> Function();
 
 class ConwayRuleSet {
   late final Plane _plane;
   late final CompositeSubscription _subscriptions = CompositeSubscription();
+  late final Stream<Set<Cell>> _generationState;
 
   ConwayRuleSet.seeded(
     Set<Cell> cells, {
@@ -19,11 +18,14 @@ class ConwayRuleSet {
   }) {
     _plane = Plane.seeded(cells);
 
-    _plane.state
+    _generationState = _plane.state
         .where((it) => it.isGenerationMilestone)
-        .asyncMap((it) => readySignal?.call(it) ?? Future.value(it))
         .take(years)
-        .map((it) => it.state)
+        .map((it) => it.state);
+
+    _generationState
+        .asyncMap(
+            (it) => readySignal?.call().then((_) => it) ?? Future.value(it))
         .asyncExpand((cells) {
           final toLocalArea = createLocalAreaBuilder(cells);
           final maybeStayAliveAndListDeadSiblings =
@@ -44,12 +46,10 @@ class ConwayRuleSet {
         .addTo(_subscriptions);
   }
 
-  Stream<Set<Cell>> get events => _plane.state
-      .where((it) => it.isGenerationMilestone)
-      .map((it) => it.state);
+  Stream<Set<Cell>> get events => _generationState;
 
   @visibleForTesting
-  Iterable<Slot> Function(Cell) createLocalAreaBuilder(HashSet<Cell> state) =>
+  List<Slot> Function(Cell) createLocalAreaBuilder(Set<Cell> state) =>
       (centerCell) {
         final list = <Slot>[];
 
@@ -77,8 +77,8 @@ class ConwayRuleSet {
   }
 
   @visibleForTesting
-  Stream<Cell> Function(Iterable<Slot>) createMaybeStayAliveBuilder(
-    HashSet<Cell> state,
+  Stream<Cell> Function(List<Slot>) createMaybeStayAliveBuilder(
+    Set<Cell> state,
   ) =>
       (grid) {
         // subtract 1, which is the center cell itself
@@ -92,7 +92,7 @@ class ConwayRuleSet {
       };
 
   @visibleForTesting
-  void Function(Iterable<Slot>) createMaybeCreateOffspringBuilder(
+  void Function(List<Slot>) createMaybeCreateOffspringBuilder(
     Set<Cell> state,
   ) =>
       (grid) {
@@ -100,8 +100,8 @@ class ConwayRuleSet {
       };
 }
 
-extension _LocalAreaExtension on Iterable<Slot> {
-  Slot get center => elementAt(4);
+extension _LocalAreaExtension on List<Slot> {
+  Slot get center => this[4];
 
   int get aliveSiblingsCount => where((it) => it.hasCell).length;
 

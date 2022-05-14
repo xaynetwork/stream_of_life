@@ -17,8 +17,7 @@ class Renderer extends StatefulWidget {
 class _RendererState extends State<Renderer> {
   late final ConwayRuleSet game = ConwayRuleSet.seeded(
     puffer_train.dataSet,
-    readySignal: (state) =>
-        WidgetsBinding.instance!.endOfFrame.then((_) => state),
+    readySignal: () => WidgetsBinding.instance!.endOfFrame,
   );
   late final stream = game.events;
 
@@ -42,12 +41,13 @@ class _RendererState extends State<Renderer> {
                     willChange: true,
                   ),
                   Positioned(
-                      bottom: 24,
-                      right: 24,
-                      child: DefaultTextStyle(
-                          style: const TextStyle(
-                              fontSize: 28, color: Colors.white),
-                          child: Text('${snapshot.requireData.length}'))),
+                    bottom: 24,
+                    right: 24,
+                    child: DefaultTextStyle(
+                      style: const TextStyle(fontSize: 28, color: Colors.white),
+                      child: Text('${snapshot.requireData.length}'),
+                    ),
+                  ),
                 ],
               )
             : Container(),
