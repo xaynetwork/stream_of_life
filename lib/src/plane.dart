@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:stream_of_life/src/cell.dart';
@@ -29,8 +30,7 @@ class Plane {
     _state = allOperations
         .distinct()
         .scan(execOperation, initialState)
-        .startWith(initialState)
-        .shareValue();
+        .startWith(initialState);
   }
 
   void add(Cell cell) => _onAddCell.add(cell);

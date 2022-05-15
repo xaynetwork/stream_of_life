@@ -1,52 +1,63 @@
-import 'package:meta/meta.dart';
-import 'package:rxdart/rxdart.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:stream_of_life/src/cell.dart';
 import 'package:stream_of_life/src/plane.dart';
 import 'package:stream_of_life/src/slot.dart';
 
-typedef ReadySignal = Future<void> Function();
+class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
+  final EventSink<Set<Cell>> _outputSink;
+  final Plane _plane;
+  StreamSubscription? _subscription;
+  bool _didClose = false;
 
-class ConwayRuleSet {
-  late final Plane _plane;
-  late final CompositeSubscription _subscriptions = CompositeSubscription();
-  late final Stream<Set<Cell>> _generationState;
+  _ConwayStreamSink(this._outputSink, this._plane);
 
-  ConwayRuleSet.seeded(
-    Set<Cell> cells, {
-    int years = 1000,
-    ReadySignal? readySignal,
-  }) {
-    _plane = Plane.seeded(cells);
+  @override
+  void add(LifetimeState data) async {
+    if (data.isGenerationMilestone) {
+      _outputSink.add(data.state);
 
-    _generationState = _plane.state
-        .where((it) => it.isGenerationMilestone)
-        .take(years)
-        .map((it) => it.state);
+      final toLocalArea = createLocalAreaBuilder(data.state);
+      final maybeStayAliveAndListDeadSiblings =
+          createMaybeStayAliveBuilder(data.state);
+      final maybeCreateOffspring =
+          createMaybeCreateOffspringBuilder(data.state);
 
-    _generationState
-        .asyncMap(
-            (it) => readySignal?.call().then((_) => it) ?? Future.value(it))
-        .asyncExpand((cells) {
-          final toLocalArea = createLocalAreaBuilder(cells);
-          final maybeStayAliveAndListDeadSiblings =
-              createMaybeStayAliveBuilder(cells);
-          final maybeCreateOffspring = createMaybeCreateOffspringBuilder(cells);
+      onDone() {
+        _subscription = null;
 
-          return Stream.fromIterable(cells)
-              // test if currently living cells can stay alive
-              .map(toLocalArea)
-              .asyncExpand(maybeStayAliveAndListDeadSiblings)
-              // test if the cell can produce offspring
-              .map(toLocalArea)
-              .map(maybeCreateOffspring)
-              // mark the current generation as completed
-              .doOnDone(_plane.markGeneration);
-        })
-        .listen(null)
-        .addTo(_subscriptions);
+        if (_didClose) {
+          _outputSink.close();
+        } else {
+          _plane.markGeneration();
+        }
+      }
+
+      _subscription = Stream.fromIterable(data.state)
+          // test if currently living cells can stay alive
+          .map(toLocalArea)
+          .asyncExpand(maybeStayAliveAndListDeadSiblings)
+          // test if the cell can produce offspring
+          .map(toLocalArea)
+          .map(maybeCreateOffspring)
+          .listen(
+            null,
+            onDone: onDone,
+            onError: _outputSink.addError,
+          );
+    }
   }
 
-  Stream<Set<Cell>> get events => _generationState;
+  @override
+  void addError(e, [st]) => _outputSink.addError(e, st);
+
+  @override
+  void close() {
+    _didClose = true;
+
+    if (_subscription == null) _outputSink.close();
+  }
 
   @visibleForTesting
   List<Slot> Function(Cell) createLocalAreaBuilder(Set<Cell> state) =>
@@ -70,12 +81,6 @@ class ConwayRuleSet {
         return List<Slot>.unmodifiable(list);
       };
 
-  @mustCallSuper
-  void dispose() {
-    _subscriptions.dispose();
-    _plane.dispose();
-  }
-
   @visibleForTesting
   Stream<Cell> Function(List<Slot>) createMaybeStayAliveBuilder(
     Set<Cell> state,
@@ -98,6 +103,23 @@ class ConwayRuleSet {
       (grid) {
         if (grid.aliveSiblingsCount == 3) _plane.add(grid.center.requireCell);
       };
+}
+
+class ConwayStreamTransformer
+    extends StreamTransformerBase<LifetimeState, Set<Cell>> {
+  final Plane _plane;
+
+  ConwayStreamTransformer(this._plane);
+
+  @override
+  Stream<Set<Cell>> bind(Stream<LifetimeState> stream) =>
+      Stream.eventTransformed(
+          stream, (sink) => _ConwayStreamSink(sink, _plane));
+}
+
+extension ConwayExtension on Stream<LifetimeState> {
+  Stream<Set<Cell>> conway(Plane plane) =>
+      transform(ConwayStreamTransformer(plane));
 }
 
 extension _LocalAreaExtension on List<Slot> {

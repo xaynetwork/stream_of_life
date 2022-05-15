@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:stream_of_life/src/cell.dart';
 import 'package:stream_of_life/src/conway_rule_set.dart';
+import 'package:stream_of_life/src/plane.dart';
 import 'package:stream_of_life/src/puffer_train_data.dart' as puffer_train;
 
 const double _kCellSize = 3;
@@ -15,18 +16,9 @@ class Renderer extends StatefulWidget {
 }
 
 class _RendererState extends State<Renderer> {
-  late final ConwayRuleSet game = ConwayRuleSet.seeded(
-    puffer_train.dataSet,
-    readySignal: () => WidgetsBinding.instance!.endOfFrame,
-  );
-  late final stream = game.events;
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    game.dispose();
-  }
+  late final Plane plane = Plane.seeded(puffer_train.dataSet);
+  late final Stream<Set<Cell>> stream =
+      plane.state.bindToFrameRate().conway(plane);
 
   @override
   Widget build(BuildContext context) => StreamBuilder<Set<Cell>>(
@@ -91,4 +83,11 @@ class _Painter extends CustomPainter {
 
   @override
   bool shouldRepaint(_Painter oldDelegate) => true;
+}
+
+extension _StreamExtension on Stream<LifetimeState> {
+  Stream<LifetimeState> bindToFrameRate() =>
+      asyncMap((it) => it.isGenerationMilestone
+          ? WidgetsBinding.instance!.endOfFrame.then((_) => it)
+          : Future.value(it));
 }
