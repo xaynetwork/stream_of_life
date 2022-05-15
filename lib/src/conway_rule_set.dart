@@ -70,11 +70,13 @@ class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
             final cell = Cell(x: x, y: y);
             final hasCell = state.contains(cell);
 
-            list.add(Slot(
-              hasCell ? cell : null,
-              x: x,
-              y: y,
-            ));
+            list.add(
+              Slot(
+                hasCell ? cell : null,
+                x: x,
+                y: y,
+              ),
+            );
           }
         }
 
@@ -86,8 +88,7 @@ class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
     Set<Cell> state,
   ) =>
       (grid) {
-        // subtract 1, which is the center cell itself
-        final aliveSiblings = grid.aliveSiblingsCount - 1;
+        final aliveSiblings = grid.aliveSiblingsCount;
 
         if (aliveSiblings < 2 || aliveSiblings > 3) {
           _plane.remove(grid.center.requireCell);
@@ -125,8 +126,45 @@ extension ConwayExtension on Stream<LifetimeState> {
 extension _LocalAreaExtension on List<Slot> {
   Slot get center => this[4];
 
-  int get aliveSiblingsCount => where((it) => it.hasCell).length;
+  int get aliveSiblingsCount {
+    final a = this[0],
+        b = this[1],
+        c = this[2],
+        d = this[3],
+        e = this[5],
+        f = this[6],
+        g = this[7],
+        h = this[8];
 
-  Iterable<Cell> get deadSiblings =>
-      where((it) => !it.hasCell).map((it) => it.requireCell);
+    return (a.hasCell ? 1 : 0) +
+        (b.hasCell ? 1 : 0) +
+        (c.hasCell ? 1 : 0) +
+        (d.hasCell ? 1 : 0) +
+        (e.hasCell ? 1 : 0) +
+        (f.hasCell ? 1 : 0) +
+        (g.hasCell ? 1 : 0) +
+        (h.hasCell ? 1 : 0);
+  }
+
+  Iterable<Cell> get deadSiblings {
+    final a = this[0],
+        b = this[1],
+        c = this[2],
+        d = this[3],
+        e = this[5],
+        f = this[6],
+        g = this[7],
+        h = this[8];
+
+    return [
+      if (!a.hasCell) a.requireCell,
+      if (!b.hasCell) b.requireCell,
+      if (!c.hasCell) c.requireCell,
+      if (!d.hasCell) d.requireCell,
+      if (!e.hasCell) e.requireCell,
+      if (!f.hasCell) f.requireCell,
+      if (!g.hasCell) g.requireCell,
+      if (!h.hasCell) h.requireCell,
+    ];
+  }
 }

@@ -16,7 +16,7 @@ class Cell {
   }
 
   @override
-  int get hashCode => '$x,$y'.hashCode;
+  int get hashCode => Object.hashAll([x, y]);
 
   @override
   String toString() => '$x,$y';

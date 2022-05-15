@@ -88,7 +88,7 @@ class CellOperation {
   }
 
   @override
-  int get hashCode => '${operation.name}, $cell'.hashCode;
+  int get hashCode => Object.hashAll([operation, cell]);
 
   @override
   String toString() => 'op: $operation, cell: $cell';
@@ -112,7 +112,7 @@ class LifetimeState {
   }
 
   @override
-  int get hashCode => '$isGenerationMilestone, $state'.hashCode;
+  int get hashCode => Object.hashAll([isGenerationMilestone, ...state]);
 
   @override
   String toString() =>
