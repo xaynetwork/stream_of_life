@@ -27,17 +27,24 @@ class _RendererState extends State<Renderer> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  CustomPaint(
-                    painter: _Painter(snapshot.requireData),
-                    isComplex: false,
-                    willChange: true,
+                  LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      controller: ScrollController(
+                          initialScrollOffset: 10000 - constraints.maxHeight),
+                      child: CustomPaint(
+                        painter: _Painter(snapshot.requireData),
+                        isComplex: false,
+                        willChange: true,
+                        size: Size(constraints.maxWidth, 10000),
+                      ),
+                    ),
                   ),
                   Positioned(
                     bottom: 24,
                     right: 24,
                     child: DefaultTextStyle(
-                      style: const TextStyle(fontSize: 28, color: Colors.white),
-                      child: Text('${snapshot.requireData.length}'),
+                      style: const TextStyle(fontSize: 24, color: Colors.white),
+                      child: Text('#events ${plane.eventCount}'),
                     ),
                   ),
                 ],

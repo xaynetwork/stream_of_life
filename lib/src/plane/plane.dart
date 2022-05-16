@@ -15,6 +15,9 @@ class Plane implements PlaneStream, PlaneController {
   final StreamController<Cell> _onAddCell = StreamController<Cell>();
   final StreamController<Cell> _onRemoveCell = StreamController<Cell>();
   final StreamController<void> _onGeneration = StreamController<void>();
+  int _eventCount = 0;
+
+  int get eventCount => _eventCount;
 
   @override
   Stream<LifetimeState> get state => _state;
@@ -56,16 +59,26 @@ class Plane implements PlaneStream, PlaneController {
   @visibleForTesting
   LifetimeState execOperation(
       LifetimeState lifetime, CellOperation cellOperation, int index) {
+    _eventCount++;
+
     switch (cellOperation.operation) {
       case Operation.add:
-        final nextCells = HashSet.of(lifetime.state);
-        return LifetimeState.growing(nextCells..add(cellOperation.requireCell));
-      case Operation.remove:
-        final nextCells = HashSet.of(lifetime.state);
         return LifetimeState.growing(
-            nextCells..remove(cellOperation.requireCell));
+          lifetime.state,
+          additions: [...lifetime.additions, cellOperation.requireCell],
+          removals: lifetime.removals,
+        );
+      case Operation.remove:
+        return LifetimeState.growing(
+          lifetime.state,
+          additions: lifetime.additions,
+          removals: [...lifetime.removals, cellOperation.requireCell],
+        );
       case Operation.increaseAge:
-        return LifetimeState.mature(lifetime.state);
+        final nextCells = HashSet.of(lifetime.state)
+          ..addAll(lifetime.additions)
+          ..removeAll(lifetime.removals);
+        return LifetimeState.mature(nextCells);
     }
   }
 }

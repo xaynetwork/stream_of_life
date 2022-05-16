@@ -5,10 +5,20 @@ import 'package:stream_of_life/src/plane/domain/cell.dart';
 
 class LifetimeState {
   final HashSet<Cell> state;
+
+  /// helper Lists, because creating copies of a HashSet in Dart is super slow :(
+  final List<Cell> additions, removals;
   final bool isGenerationMilestone;
 
-  const LifetimeState.growing(this.state) : isGenerationMilestone = false;
-  const LifetimeState.mature(this.state) : isGenerationMilestone = true;
+  const LifetimeState.growing(
+    this.state, {
+    required this.additions,
+    required this.removals,
+  }) : isGenerationMilestone = false;
+  const LifetimeState.mature(this.state)
+      : additions = const [],
+        removals = const [],
+        isGenerationMilestone = true;
 
   @override
   bool operator ==(Object other) {
