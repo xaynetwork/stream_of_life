@@ -6,9 +6,7 @@ class Cell {
   const Cell({
     required this.x,
     required this.y,
-  }) :
-        // Suzuki's hash of 2 ints
-        hashCode = x >= y ? x * x + x + y : x + y * y;
+  }) : hashCode = x >= y ? x * x + x + y : x + y * y;
 
   @override
   bool operator ==(Object other) {

@@ -1,4 +1,4 @@
-import 'package:stream_of_life/src/cell.dart';
+import 'package:stream_of_life/src/plane/domain/cell.dart';
 
 final dataSet = {
   // left shape large

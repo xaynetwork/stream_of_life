@@ -1,17 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
-import 'package:stream_of_life/src/cell.dart';
-import 'package:stream_of_life/src/plane.dart';
-import 'package:stream_of_life/src/slot.dart';
+import 'package:stream_of_life/src/plane/domain/cell.dart';
+import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
+import 'package:stream_of_life/src/plane/domain/extension/slot_list_extension.dart';
+import 'package:stream_of_life/src/plane/plane_controller.dart';
+import 'package:stream_of_life/src/plane/domain/slot.dart';
 
-class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
+class ConwayStreamSink<T> implements EventSink<LifetimeState> {
   final EventSink<Set<Cell>> _outputSink;
-  final Plane _plane;
+  final PlaneController _plane;
   StreamSubscription? _subscription;
   bool _didClose = false;
 
-  _ConwayStreamSink(this._outputSink, this._plane);
+  ConwayStreamSink(this._outputSink, this._plane);
 
   @override
   void add(LifetimeState data) async {
@@ -80,7 +82,7 @@ class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
           }
         }
 
-        return List<Slot>.unmodifiable(list);
+        return List.unmodifiable(list);
       };
 
   @visibleForTesting
@@ -104,67 +106,4 @@ class _ConwayStreamSink<T> implements EventSink<LifetimeState> {
       (grid) {
         if (grid.aliveSiblingsCount == 3) _plane.add(grid.center.requireCell);
       };
-}
-
-class ConwayStreamTransformer
-    extends StreamTransformerBase<LifetimeState, Set<Cell>> {
-  final Plane _plane;
-
-  ConwayStreamTransformer(this._plane);
-
-  @override
-  Stream<Set<Cell>> bind(Stream<LifetimeState> stream) =>
-      Stream.eventTransformed(
-          stream, (sink) => _ConwayStreamSink(sink, _plane));
-}
-
-extension ConwayExtension on Stream<LifetimeState> {
-  Stream<Set<Cell>> conway(Plane plane) =>
-      transform(ConwayStreamTransformer(plane));
-}
-
-extension _LocalAreaExtension on List<Slot> {
-  Slot get center => this[4];
-
-  int get aliveSiblingsCount {
-    final a = this[0],
-        b = this[1],
-        c = this[2],
-        d = this[3],
-        e = this[5],
-        f = this[6],
-        g = this[7],
-        h = this[8];
-
-    return (a.hasCell ? 1 : 0) +
-        (b.hasCell ? 1 : 0) +
-        (c.hasCell ? 1 : 0) +
-        (d.hasCell ? 1 : 0) +
-        (e.hasCell ? 1 : 0) +
-        (f.hasCell ? 1 : 0) +
-        (g.hasCell ? 1 : 0) +
-        (h.hasCell ? 1 : 0);
-  }
-
-  Iterable<Cell> get deadSiblings {
-    final a = this[0],
-        b = this[1],
-        c = this[2],
-        d = this[3],
-        e = this[5],
-        f = this[6],
-        g = this[7],
-        h = this[8];
-
-    return [
-      if (!a.hasCell) a.requireCell,
-      if (!b.hasCell) b.requireCell,
-      if (!c.hasCell) c.requireCell,
-      if (!d.hasCell) d.requireCell,
-      if (!e.hasCell) e.requireCell,
-      if (!f.hasCell) f.requireCell,
-      if (!g.hasCell) g.requireCell,
-      if (!h.hasCell) h.requireCell,
-    ];
-  }
 }

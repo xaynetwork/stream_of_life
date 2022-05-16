@@ -1,8 +1,10 @@
 import 'dart:collection';
 
+import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
+import 'package:stream_of_life/src/plane/domain/operation.dart';
+import 'package:stream_of_life/src/plane/plane.dart';
 import 'package:test/test.dart';
-import 'package:stream_of_life/src/cell.dart';
-import 'package:stream_of_life/src/plane.dart';
+import 'package:stream_of_life/src/plane/domain/cell.dart';
 
 void main() {
   test('ENSURE THAT plane.execOperation is a pure Function', () {

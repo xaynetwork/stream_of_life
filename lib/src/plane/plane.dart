@@ -1,18 +1,22 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:stream_of_life/src/cell.dart';
+import 'package:stream_of_life/src/plane/domain/cell.dart';
+import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
+import 'package:stream_of_life/src/plane/domain/operation.dart';
+import 'package:stream_of_life/src/plane/plane_controller.dart';
+import 'package:stream_of_life/src/plane/plane_stream.dart';
 
-class Plane {
+class Plane implements PlaneStream, PlaneController {
   late final Stream<LifetimeState> _state;
   final StreamController<Cell> _onAddCell = StreamController<Cell>();
   final StreamController<Cell> _onRemoveCell = StreamController<Cell>();
   final StreamController<void> _onGeneration = StreamController<void>();
 
+  @override
   Stream<LifetimeState> get state => _state;
 
   Plane.seeded(Set<Cell> cells) {
@@ -33,12 +37,16 @@ class Plane {
         .startWith(initialState);
   }
 
+  @override
   void add(Cell cell) => _onAddCell.add(cell);
 
+  @override
   void remove(Cell cell) => _onRemoveCell.add(cell);
 
+  @override
   void markGeneration() => _onGeneration.add(null);
 
+  @override
   void dispose() {
     _onAddCell.close();
     _onRemoveCell.close();
@@ -48,73 +56,16 @@ class Plane {
   @visibleForTesting
   LifetimeState execOperation(
       LifetimeState lifetime, CellOperation cellOperation, int index) {
-    final nextCells = HashSet.of(lifetime.state);
-
     switch (cellOperation.operation) {
       case Operation.add:
+        final nextCells = HashSet.of(lifetime.state);
         return LifetimeState.growing(nextCells..add(cellOperation.requireCell));
       case Operation.remove:
+        final nextCells = HashSet.of(lifetime.state);
         return LifetimeState.growing(
             nextCells..remove(cellOperation.requireCell));
       case Operation.increaseAge:
-        return LifetimeState.mature(nextCells);
+        return LifetimeState.mature(lifetime.state);
     }
   }
-}
-
-@visibleForTesting
-enum Operation { add, remove, increaseAge }
-
-@visibleForTesting
-class CellOperation {
-  final Operation operation;
-  final Cell? cell;
-
-  Cell get requireCell => cell!;
-
-  const CellOperation.add(this.cell) : operation = Operation.add;
-  const CellOperation.remove(this.cell) : operation = Operation.remove;
-  const CellOperation.increaseAge()
-      : cell = null,
-        operation = Operation.increaseAge;
-
-  @override
-  bool operator ==(Object other) {
-    if (other is CellOperation) {
-      return other.operation == operation && other.cell == cell;
-    }
-
-    return false;
-  }
-
-  @override
-  int get hashCode => Object.hashAll([operation, cell]);
-
-  @override
-  String toString() => 'op: $operation, cell: $cell';
-}
-
-class LifetimeState {
-  final HashSet<Cell> state;
-  final bool isGenerationMilestone;
-
-  const LifetimeState.growing(this.state) : isGenerationMilestone = false;
-  const LifetimeState.mature(this.state) : isGenerationMilestone = true;
-
-  @override
-  bool operator ==(Object other) {
-    if (other is LifetimeState) {
-      return other.isGenerationMilestone == isGenerationMilestone &&
-          const SetEquality().equals(other.state, state);
-    }
-
-    return false;
-  }
-
-  @override
-  int get hashCode => Object.hashAll([isGenerationMilestone, ...state]);
-
-  @override
-  String toString() =>
-      'isGenerationMilestone: $isGenerationMilestone, state: $state';
 }

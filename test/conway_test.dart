@@ -1,6 +1,6 @@
-import 'package:stream_of_life/src/cell.dart';
-import 'package:stream_of_life/src/conway_rule_set.dart';
-import 'package:stream_of_life/src/plane.dart';
+import 'package:stream_of_life/src/plane/domain/cell.dart';
+import 'package:stream_of_life/src/plane/plane.dart';
+import 'package:stream_of_life/src/stream_transformers/conway_stream_transformer.dart';
 import 'package:test/test.dart';
 
 const Matcher kIsDateTime = TypeMatcher<DateTime>();

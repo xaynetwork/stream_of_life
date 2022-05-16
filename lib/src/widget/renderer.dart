@@ -1,10 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:stream_of_life/src/cell.dart';
-import 'package:stream_of_life/src/conway_rule_set.dart';
-import 'package:stream_of_life/src/plane.dart';
-import 'package:stream_of_life/src/puffer_train_data.dart' as puffer_train;
+import 'package:stream_of_life/src/plane/domain/cell.dart';
+import 'package:stream_of_life/src/stream_transformers/conway_stream_transformer.dart';
+import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
+import 'package:stream_of_life/src/plane/plane.dart';
+import 'package:stream_of_life/src/data/puffer_train_data.dart' as puffer_train;
 
 const double _kCellSize = 3;
 
@@ -17,8 +18,7 @@ class Renderer extends StatefulWidget {
 
 class _RendererState extends State<Renderer> {
   late final Plane plane = Plane.seeded(puffer_train.dataSet);
-  late final Stream<Set<Cell>> stream =
-      plane.state.bindToFrameRate().conway(plane);
+  late final Stream<Set<Cell>> stream = plane.state.frameBound.conway(plane);
 
   @override
   Widget build(BuildContext context) => StreamBuilder<Set<Cell>>(
@@ -86,7 +86,7 @@ class _Painter extends CustomPainter {
 }
 
 extension _StreamExtension on Stream<LifetimeState> {
-  Stream<LifetimeState> bindToFrameRate() =>
+  Stream<LifetimeState> get frameBound =>
       asyncMap((it) => it.isGenerationMilestone
           ? WidgetsBinding.instance!.endOfFrame.then((_) => it)
           : Future.value(it));

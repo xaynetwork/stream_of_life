@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:stream_of_life/src/renderer.dart';
+import 'package:stream_of_life/src/widget/renderer.dart';
 
 void main() {
   runApp(const MyApp());
