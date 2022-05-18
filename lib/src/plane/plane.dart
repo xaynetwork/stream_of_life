@@ -7,10 +7,10 @@ import 'package:rxdart/rxdart.dart';
 import 'package:stream_of_life/src/plane/domain/cell.dart';
 import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
 import 'package:stream_of_life/src/plane/domain/operation.dart';
-import 'package:stream_of_life/src/plane/plane_controller.dart';
+import 'package:stream_of_life/src/plane/plane_sink.dart';
 import 'package:stream_of_life/src/plane/plane_stream.dart';
 
-class Plane implements PlaneStream, PlaneController {
+class Plane implements PlaneStream, PlaneSink {
   late final Stream<LifetimeState> _state;
   final StreamController<Cell> _onAddCell = StreamController<Cell>();
   final StreamController<Cell> _onRemoveCell = StreamController<Cell>();

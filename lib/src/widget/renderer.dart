@@ -93,8 +93,9 @@ class _Painter extends CustomPainter {
 }
 
 extension _StreamExtension on Stream<LifetimeState> {
-  Stream<LifetimeState> get frameBound =>
-      asyncMap((it) => it.isGenerationMilestone
-          ? WidgetsBinding.instance!.endOfFrame.then((_) => it)
-          : Future.value(it));
+  Stream<LifetimeState> get frameBound => asyncMap(
+        (it) => it.isGenerationMilestone
+            ? WidgetsBinding.instance.endOfFrame.then((_) => it)
+            : Future.value(it),
+      );
 }

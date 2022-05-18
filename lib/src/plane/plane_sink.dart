@@ -1,6 +1,6 @@
 import 'package:stream_of_life/src/plane/domain/cell.dart';
 
-abstract class PlaneController {
+abstract class PlaneSink {
   void add(Cell cell);
 
   void remove(Cell cell);

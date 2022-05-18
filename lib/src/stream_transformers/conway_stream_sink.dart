@@ -4,12 +4,12 @@ import 'package:flutter/widgets.dart';
 import 'package:stream_of_life/src/plane/domain/cell.dart';
 import 'package:stream_of_life/src/plane/domain/lifetime_state.dart';
 import 'package:stream_of_life/src/plane/domain/extension/slot_list_extension.dart';
-import 'package:stream_of_life/src/plane/plane_controller.dart';
+import 'package:stream_of_life/src/plane/plane_sink.dart';
 import 'package:stream_of_life/src/plane/domain/slot.dart';
 
 class ConwayStreamSink<T> implements EventSink<LifetimeState> {
   final EventSink<Set<Cell>> _outputSink;
-  final PlaneController _plane;
+  final PlaneSink _plane;
   StreamSubscription? _subscription;
   bool _didClose = false;
 
